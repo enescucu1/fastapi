@@ -67,8 +67,26 @@ gültig bis 07.02.2027). Lösung: Datei durch das aktuelle Zertifikat ersetzt.
 Danach startet der Server: Tabellen werden angelegt, die CSV-Daten geladen, sechs
 Benutzer in Keycloak angelegt, Uvicorn läuft auf `https://127.0.0.1:8000`.
 
+## Bruno (7.10.)
+
+- [x] Bruno-Desktop-App: Collection `extras/bruno/patient` geöffnet, SSL-Prüfung in den
+  Preferences ausgeschaltet (selbst-signiertes Zertifikat)
+- [x] Environment `patient` mit `clientId`, `username`, `clientSecret` und `password`
+  (die beiden letzten als Secret, sie liegen nur lokal unter `%APPDATA%\Bruno`)
+- [x] `REST`, `Token`, `Token als admin`: Status 200, Rolle ADMIN. Zuerst war
+  `expires_in` 300 statt 1800, weil die Realm-Einstellung (Access Token Lifespan
+  30 Minuten) nicht gespeichert war. Nach dem Nachtragen in Keycloak stimmt es.
+- [x] `REST`, `Suche mit ID OAuth 2`, `Vorhandene ID 1`: zuerst 401. Das Server-Log zeigte
+  `authorization_header=None`, Bruno hat also keinen Token mitgeschickt. Ursache: Der
+  Auth-Modus des Requests stand nicht auf `Inherit`. Nach der Umstellung holt Bruno den
+  Token über OAuth 2 (Keycloak) selbst, die App liefert Status 200 mit dem Patienten 1.
+
+Hilfreich bei der Fehlersuche: Das Debug-Log der App (`authorization_header=...`) zeigt,
+ob und was beim Server ankommt. Es gibt aber auch Tokens und Secrets aus und darf nicht
+ungefiltert weitergegeben werden.
+
 ## Offen
 
 - [ ] Mailpit (Volume `mailpit`)
-- [ ] Bruno: Token holen, Patient abrufen
+- [ ] Bruno: Ordner Bearer Token und weitere Requests (Suche, Anlegen, Ändern, Löschen)
 - [ ] Tests mit pytest
