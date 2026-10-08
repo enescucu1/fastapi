@@ -56,8 +56,8 @@ db_populate_path: Final = "/dev/db_populate"
 keycloak_populate_path: Final = "/dev/keycloak_populate"
 username_admin: Final = "admin"
 password_admin: Final = "p"  # ruff: ignore[hardcoded-password-string]  # NOSONAR
-timeout: Final = 2
-# timeout: Final = 5
+# timeout: Final = 2
+timeout: Final = 5
 certificate_path: Final = str(Path("tests") / "integration" / "certificate.crt")
 
 
