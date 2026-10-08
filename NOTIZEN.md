@@ -1,6 +1,6 @@
 # Notizen zur Aufgabe 1: Appserver mit FastAPI
 
-Gruppe 2, GitHub: enescucu1. Die Zeiten stehen in `zeiterfassung.xlsx`.
+Gruppe 2, GitHub: enescucu1. Zeiterfassung und Projektplan stehen in `SWE_Enes_Cubukcu_Zeiterfassung_Planung.xlsx`.
 
 ## Installation (29.9. bis 30.9.2026)
 
@@ -36,7 +36,7 @@ Ohne Backend-Server startet der Appserver, meldet aber "Keine Verbindung zu Keyc
 - [x] Einmal ohne TLS gestartet, Zertifikat und Schlüssel ins Datenverzeichnis kopiert
 - [x] Mit TLS gestartet, Datenbank `patient`, User und Schema angelegt
 - [x] Keycloak eingerichtet (siehe unten)
-- [ ] Mailpit (Volume `mailpit`)
+- [x] Mailpit (Volume `mailpit`, siehe unten)
 
 Hinweis: Für den Start ohne TLS musste in `extras/compose/postgres/compose.yml`
 temporär `command` und `user` auskommentiert werden. In der Datei fehlte die Zeile
@@ -85,8 +85,82 @@ Hilfreich bei der Fehlersuche: Das Debug-Log der App (`authorization_header=...`
 ob und was beim Server ankommt. Es gibt aber auch Tokens und Secrets aus und darf nicht
 ungefiltert weitergegeben werden.
 
+## Mailpit (8.10.)
+
+- [x] `cd extras\compose\mailpit`, `docker compose up -d`: Container `mail` läuft
+- [x] Weboberfläche auf http://localhost:8025, SMTP auf Port 1025 (in `app.toml` eingetragen)
+- [x] Mail "Neuer Patient: ID=1000" von `Python Server` an `Buchhaltung` erscheint nach einem
+  erfolgreichen `POST /rest`
+
+Hinweis: Docker meldet `a network with name acme-network exists but was not created for
+project "mailpit"`. Das ist harmlos, alle Compose-Projekte teilen sich das Netzwerk.
+Beim `docker compose down` erscheint deshalb manchmal `Resource is still in use`, auch das
+ist normal.
+
+## Bruno, weitere Requests (8.10.)
+
+| Request | Ergebnis |
+|---|---|
+| `GET /rest/1` als Admin | 200 |
+| `POST /graphql` (Patient 30, alice) | 200 |
+| `POST /rest` neuer Patient | 201, Mail in Mailpit |
+| `POST /rest` mit vorhandener E-Mail (`alice@acme.de`) | 422 |
+| `POST /rest` mit ungültigen Daten | 422 |
+| `PUT /rest/30` | 204, Version von 0 auf 1 |
+| `DELETE /rest/50` | 204 |
+
+## Tests mit pytest (8.10.)
+
+**Unit-Tests:** `uv run pytest tests/unit` ergibt 14 passed, 1 skipped.
+
+**Integrationstests:** `uv run pytest tests/integration` ergibt **70 passed** in ca. 38 s.
+Voraussetzung: PostgreSQL, Keycloak, Mailpit und der Appserver laufen. Zwei Fehler im
+Code des Dozenten mussten dafür behoben werden:
+
+1. `tests/integration/security/conftest.py` importierte `ctx` aus `common_api_test`, das dort
+   nicht mehr existiert (ImportError). Die Tests wurden offenbar von einem httpx-SSL-Kontext
+   auf einen Zertifikatspfad umgestellt. Fix: `certificate_path` importieren und
+   `AsyncHTTPTransport(verify=certificate_path)` verwenden (Commit d60e650).
+2. 67 Errors mit `ReadTimeout` bei `/dev/keycloak_populate`: Das Session-Fixture ruft diesen
+   Endpunkt mit `timeout = 2` Sekunden auf, das Neuladen von Keycloak dauert bei mir aber
+   ca. 3 Sekunden. Fix in `tests/integration/common_api_test.py`: die auskommentierte Zeile
+   `timeout: Final = 5` aktiviert (Commit 0d9cb33).
+
+Bekannte harmlose Meldungen:
+
+- `CoverageWarning: No data was collected`: der Server läuft in einem eigenen Prozess, daher
+  sieht pytest-cov keinen Code.
+- `DeprecationWarning` von httpx (`verify=<str>` ist veraltet).
+
+## Codeanalyse (8.10.)
+
+- ruff: 1 Stilhinweis in `tests\integration\security\conftest.py`
+- ty: 1 Meldung (`ctx` fehlt), durch den conftest-Fix behoben
+- Pyrefly: 0 Diagnostics
+
+## Versionen (verifiziert am 8.10.)
+
+FastAPI 0.143.0, Starlette 1.7.0, uvicorn 0.54.0, Strawberry 0.332.0, SQLAlchemy 2.1.4,
+psycopg 3.3.6, Pydantic 2.13.5, Python 3.15.0rc2, Keycloak 26.7.4, PostgreSQL 19beta4,
+Mailpit v1.31.3.
+
+## Starten und Beenden
+
+Reihenfolge: `extras\compose\keycloak` (`docker compose up`, PostgreSQL und Keycloak),
+`extras\compose\mailpit` (`docker compose up -d`), dann im Projektordner `uv run patient`
+und auf `Application startup complete` warten. Beenden: Appserver mit Strg+C,
+`docker compose down` in beiden Ordnern. Die Daten bleiben in den Volumes erhalten.
+
+Adressen: Swagger UI `https://127.0.0.1:8000/docs`, GraphQL `https://127.0.0.1:8000/graphql`,
+Keycloak `https://localhost:8843`, Mailpit `http://localhost:8025`.
+
 ## Offen
 
-- [ ] Mailpit (Volume `mailpit`)
-- [ ] Bruno: Ordner Bearer Token und weitere Requests (Suche, Anlegen, Ändern, Löschen)
-- [ ] Tests mit pytest
+- [ ] Bruno: Ordner Bearer Token (nicht separat dokumentiert)
+- [ ] `uv audit`, OWASP Dependency Check, SonarQube
+- [ ] mkdocs mit PlantUML-Diagrammen
+- [ ] Docker-Image (Dockerfile mit Hardened Image) und Docker Compose
+- [ ] GitHub Actions (ruff, ty bzw. Pyrefly)
+- [ ] Lasttests mit Locust
+- [ ] Code-Review und Abgabe
+- [ ] Forum: Hinweis an den Dozenten zu `conftest.py` und zum Timeout
