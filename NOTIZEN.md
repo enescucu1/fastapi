@@ -142,7 +142,50 @@ Bekannte harmlose Meldungen:
 
 FastAPI 0.143.0, Starlette 1.7.0, uvicorn 0.54.0, Strawberry 0.332.0, SQLAlchemy 2.1.4,
 psycopg 3.3.6, Pydantic 2.13.5, Python 3.15.0rc2, Keycloak 26.7.4, PostgreSQL 19beta4,
-Mailpit v1.31.3.
+Mailpit v1.31.3, cryptography 50.0.2 (aktualisiert am 8.10., siehe Sicherheitsprüfung).
+
+## Sicherheitsprüfung der Abhängigkeiten (8.10.)
+
+**uv audit** meldete anfangs eine Lücke in `cryptography` 49.0.0 (GHSA-g6cj-pr64-35w5,
+PKCS#7-Entschlüsselung, behoben in 50.0.0; die zweite Meldung PYSEC-2026-3552 ist dieselbe Lücke).
+`cryptography` kam über `jwcrypto` und `python-keycloak` ins Projekt, `pyproject.toml` hatte aber die
+Obergrenze `<50.0.0`. Vorgehen:
+
+- Zeile in `pyproject.toml` auf `"cryptography>=50.0.0,<51.0.0"` geändert
+- `uv lock --upgrade-package cryptography` und `uv sync --all-groups`: Update auf 50.0.2
+- `uv audit`: keine bekannten Schwachstellen mehr
+- Unit-Tests (14 passed, 1 skipped) und Integrationstests (70 passed) weiter grün (Commit 36a3389)
+
+`uv audit --all-extras` aus der VORGEHENSWEISE gibt es in dieser uv-Version nicht (`unexpected argument`),
+Extras werden von `uv audit` ohnehin geprüft (152 Pakete).
+
+**Veraltete Pakete** (`uv tree --outdated --all-groups --depth=1`): nur `pydantic` 2.13.5 (neu: 2.14.0) und
+`pydantic-core` 2.46.5 (neu: 2.50.0). Nicht aktualisiert, weil beide eng gekoppelt sind, die Versionsgrenzen
+vom Dozenten stammen und `uv audit` keine Lücke dazu meldet.
+
+**OWASP Dependency Check** (Version 13.0.0):
+
+- NVD-API-Key von https://nvd.nist.gov/developers/request-an-api-key angefordert und in `.env` als
+  `NVD_API_KEY` eingetragen (die Datei ist in `.gitignore`). In der ausgelieferten `.env` stand nur ein
+  Platzhalter, damit schlug das Datenbank-Update mit `Invalid API Key` fehl.
+- `uv run extras/dependency-check.py`: Bericht mit `Dependencies Scanned: 1`, also nicht aussagekräftig
+  (das Skript scannt `..` und erkennt die Python-Pakete nicht). Außerdem gibt das Skript den API-Key im
+  Klartext in der Konsole aus, die Ausgabe nicht weitergeben.
+- Ergänzender Scan der installierten Pakete (Bericht im Temp-Ordner, nicht im Repository):
+
+```powershell
+$key = ((Get-Content .env | Select-String 'NVD_API_KEY').Line -split '=',2)[1].Trim('"')
+& C:\Zimmermann\dependency-check\bin\dependency-check.bat `
+  --nvdApiKey $key --project FastAPI-venv --scan .\.venv\Lib\site-packages `
+  --suppression extras\suppression.xml --out "$env:TEMP\odc-venv" --data C:\Zimmermann\dependency-check-data `
+  --disableAssembly --disableOssIndex --disableNodeJS --disableNodeAudit `
+  --disableYarnAudit --disablePnpmAudit --disableJar --disableCentral
+```
+
+  Ergebnis: 86 Dateien gescannt. Ohne Suppression 1 Fund: `underscore.js` 1.8.3 in `wordcut.js`
+  (`.venv\Lib\site-packages\material\templates\assets\javascripts\lunr\wordcut.js`, gehört zu
+  mkdocs-material, läuft nur im Browser bei der Suche der Dokumentation), 2 CVEs, Schweregrad HIGH.
+  Mit `extras/suppression.xml` des Dozenten: 0 Funde, 2 unterdrückt.
 
 ## Starten und Beenden
 
@@ -157,10 +200,11 @@ Keycloak `https://localhost:8843`, Mailpit `http://localhost:8025`.
 ## Offen
 
 - [ ] Bruno: Ordner Bearer Token (nicht separat dokumentiert)
-- [ ] `uv audit`, OWASP Dependency Check, SonarQube
+- [ ] SonarQube (`sonar-scanner.py`, `sonar-project.properties`, `extras/compose/sonarqube`)
 - [ ] mkdocs mit PlantUML-Diagrammen
 - [ ] Docker-Image (Dockerfile mit Hardened Image) und Docker Compose
 - [ ] GitHub Actions (ruff, ty bzw. Pyrefly)
 - [ ] Lasttests mit Locust
 - [ ] Code-Review und Abgabe
-- [ ] Forum: Hinweis an den Dozenten zu `conftest.py` und zum Timeout
+- [ ] Forum: Hinweis an den Dozenten zu `conftest.py` (ctx), Timeout 2 s, Obergrenze `cryptography<50.0.0`,
+  `uv audit --all-extras` und `Dependencies Scanned: 1` beim Skript `extras/dependency-check.py`
