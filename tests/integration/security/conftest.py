@@ -17,7 +17,7 @@
 
 from common_api_test import certificate_path, timeout
 from httpx import AsyncClient, AsyncHTTPTransport
-from pytest import fixture
+from pytest import fixture  # ruff: ignore[pytest-incorrect-pytest-import]
 
 # "Fixtures" sind Funktionen, die vor den Test-Funktionen ausgefuehrt werden, um z.B.
 # wiederholt benoetigte Daten bereitzustellen (URLs, DB-Verbindungen usw.).
