@@ -42,8 +42,8 @@ include:
 # https://docs.docker.com/reference/compose-file/services
 services:
   patient:
-    image: juergenzimmermann/patient:2026.10.1-hardened
-    #image: juergenzimmermann/patient:2026.10.1-trixie
+    #image: juergenzimmermann/patient:2026.10.1-hardened
+    image: juergenzimmermann/patient:2026.10.1-trixie
     #image: juergenzimmermann/patient:2026.10.1-alpine
     #entrypoint: ["/bin/bash", "-c", "echo 'Container als bash gestartet.' && sleep infinity"]
     # (d)ash = (Debian) Almquist Shell
