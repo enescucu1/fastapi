@@ -113,14 +113,14 @@ ist normal.
 
 **Unit-Tests:** `uv run pytest tests/unit` ergibt 14 passed, 1 skipped.
 
-**Integrationstests:** `uv run pytest tests/integration` ergibt **70 passed** in ca. 38 s.
-Voraussetzung: PostgreSQL, Keycloak, Mailpit und der Appserver laufen. Zwei Fehler im
+**Integrationstests:** `uv run pytest tests/integration` ergibt **70 passed** in ca. 35 bis
+38 s. Voraussetzung: PostgreSQL, Keycloak, Mailpit und der Appserver laufen. Zwei Fehler im
 Code des Dozenten mussten dafür behoben werden:
 
 1. `tests/integration/security/conftest.py` importierte `ctx` aus `common_api_test`, das dort
-   nicht mehr existiert (ImportError). Die Tests wurden offenbar von einem httpx-SSL-Kontext
-   auf einen Zertifikatspfad umgestellt. Fix: `certificate_path` importieren und
-   `AsyncHTTPTransport(verify=certificate_path)` verwenden (Commit d60e650).
+   nicht mehr existiert (ImportError). Ich hatte es mit `certificate_path` repariert
+   (Commit d60e650). Laut Dozent (Forum) wird die Datei nicht mehr benötigt, sie ist
+   gelöscht. Danach weiterhin 70 passed (12.10.).
 2. 67 Errors mit `ReadTimeout` bei `/dev/keycloak_populate`: Das Session-Fixture ruft diesen
    Endpunkt mit `timeout = 2` Sekunden auf, das Neuladen von Keycloak dauert bei mir aber
    ca. 3 Sekunden. Fix in `tests/integration/common_api_test.py`: die auskommentierte Zeile
@@ -135,7 +135,7 @@ Bekannte harmlose Meldungen:
 ## Codeanalyse (8.10.)
 
 - ruff: 1 Stilhinweis in `tests\integration\security\conftest.py`
-  (`pytest-incorrect-pytest-import`), siehe Abschnitt GitHub Actions
+  (`pytest-incorrect-pytest-import`), durch das Löschen der Datei erledigt
 - ty: 1 Meldung (`ctx` fehlt), durch den conftest-Fix behoben
 - Pyrefly: 0 Diagnostics
 
@@ -195,10 +195,11 @@ Maintainability (Rating A), 0 Security Hotspots, Duplications 0,0 %, Coverage 0,
   `pyrefly check` (Python 3.15 über `uv python install`, Abhängigkeiten mit
   `uv sync --all-groups`)
 - [x] Vorher lokal geprüft: ruff format (91 Dateien ok), ty und Pyrefly ohne Fund
-- [x] ruff meldete in `tests\integration\security\conftest.py` noch
-  `pytest-incorrect-pytest-import` (`from pytest import fixture`). Das ist der Stil im
-  ganzen Projekt, deshalb ist die Regel in dieser Zeile per Kommentar unterdrückt
-- Ergebnis des ersten Laufs im Tab Actions: (hier eintragen: grün oder Fehlermeldung)
+- [x] ruff meldete in `tests\integration\security\conftest.py` einen Hinweis
+  (`pytest-incorrect-pytest-import`, `from pytest import fixture`), den ich zunächst in
+  dieser Zeile unterdrückt hatte. Die Datei wurde später auf Anweisung des Dozenten
+  gelöscht.
+- Ergebnis des ersten Laufs im Tab Actions: grün
 
 ## Docker (11.10. bis 12.10.)
 
@@ -258,7 +259,6 @@ Keycloak `https://localhost:8843`, Mailpit `http://localhost:8025`.
 
 - [ ] Bruno: Requests gegen den Docker-Container testen (Token, GET, POST, Mail in Mailpit)
 - [ ] Bruno: Ordner Bearer Token (nicht separat dokumentiert)
-- [ ] GitHub Actions: Ergebnis des ersten Laufs eintragen
 - [ ] mkdocs mit PlantUML-Diagrammen
 - [ ] Lasttests mit Locust
 - [ ] Code-Review und Abgabe
