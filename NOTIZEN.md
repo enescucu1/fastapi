@@ -236,6 +236,13 @@ Im Repo liegen `Dockerfile` (Hardened), `Dockerfile.trixie`, `Dockerfile.alpine`
 Vor dem Start mit Compose müssen der lokale Appserver sowie die Compose-Projekte
 `keycloak` und `mailpit` beendet sein (Port 8000, Backend kommt per `include`).
 
+**Test gegen den Container (12.10.):** Bruno-Requests gegen `https://127.0.0.1:8000`
+
+(Compose-Stack mit Trixie-Image): Token 200, `GET /rest/1` 200, `POST /rest` 201 (Mail
+in Mailpit) und 422 (vorhandene E-Mail, ungültige Daten), `PUT /rest/30` 204 (Version
+0 auf 1), `DELETE /rest/50` 204, `POST /graphql` 200. Der Container startet mit
+`User app` und `cap_drop: [ALL]`. Beim Start werden DB und Keycloak neu geladen.
+
 ## Versionen (verifiziert am 8.10.)
 
 FastAPI 0.143.0, Starlette 1.7.0, uvicorn 0.54.0, Strawberry 0.332.0, SQLAlchemy 2.1.4,
@@ -257,7 +264,6 @@ Keycloak `https://localhost:8843`, Mailpit `http://localhost:8025`.
 
 ## Offen
 
-- [ ] Bruno: Requests gegen den Docker-Container testen (Token, GET, POST, Mail in Mailpit)
 - [ ] Bruno: Ordner Bearer Token (nicht separat dokumentiert)
 - [ ] mkdocs mit PlantUML-Diagrammen
 - [ ] Lasttests mit Locust
