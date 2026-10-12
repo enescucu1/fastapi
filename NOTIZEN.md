@@ -262,9 +262,46 @@ und auf `Application startup complete` warten. Beenden: Appserver mit Strg+C,
 Adressen: Swagger UI `https://127.0.0.1:8000/docs`, GraphQL `https://127.0.0.1:8000/graphql`,
 Keycloak `https://localhost:8843`, Mailpit `http://localhost:8025`.
 
+## Lasttests mit Locust (12.10.)
+
+Vorbereitung laut `tests/lasttest/README.md`: Im Container `LOGURU_LEVEL=INFO` in
+`extras/compose/patient/.env` aktiviert, in `app.toml` `log-statements` und
+`graphiql-enabled` auskommentiert, danach `docker compose restart patient`.
+Aufruf: `cd tests\lasttest`, `uvx locust`, im Browser `http://localhost:8089` mit
+50 Users, Ramp up 5, Host `https://localhost:8000`.
+
+**Fehler im Skript des Dozenten:** Beim ersten Lauf brach `on_start` bei allen 50 Users mit
+`KeyError: 'token'` ab. Ursache: Das Skript schickt `POST /auth/token`, der Endpunkt
+erwartet aber die HTTP-Methode `QUERY` (wie bei Bruno). Fix in `locustfile.py`:
+`self.client.request("QUERY", url="/auth/token", json=...)`. Der Handtest mit
+`curl -X QUERY` lieferte 200 mit dem Feld `token`, die Zugangsdaten `admin` / `p` stimmen.
+
+**Ergebnis** (50 Users, ca. 3,6 Minuten Laufzeit):
+
+| Kennzahl | Wert |
+|---|---|
+| Requests gesamt | 5992 |
+| Fehler | 0 |
+| Median | 110 ms |
+| 95. Perzentil | 260 ms |
+| 99. Perzentil | 310 ms |
+| Durchsatz | 27,6 Requests/s |
+| Langsamster Request | 895 ms (Login) |
+
+Der Durchsatz entspricht dem, was das Skript vorgibt (`constant_throughput(0.1)` bei
+50 Users, also 5 Durchläufe pro Sekunde mit je 5 bis 6 Requests). Der Server war also
+nicht am Limit. Der Login über Keycloak ist mit 470 ms Median am langsamsten, er läuft
+nur einmal pro User. `/rest?nachname=a` braucht 250 ms, der Buchstabe trifft die meisten
+Patienten.
+
+**Einordnung:** Alles läuft auf einem Notebook, virtualisiert in Containern, mit HTTPS.
+Appserver, PostgreSQL, Keycloak, Mailpit und Locust teilen sich dieselbe Hardware. Das ist
+ein Last-, kein Stresstest, die Belastungsgrenze wurde nicht gesucht.
+
+Nach dem Test `.env` und `app.toml` wieder auf den Entwicklungszustand zurückgesetzt.
+
 ## Offen
 
 - [ ] Bruno: Ordner Bearer Token (nicht separat dokumentiert)
 - [ ] mkdocs mit PlantUML-Diagrammen
-- [ ] Lasttests mit Locust
 - [ ] Code-Review und Abgabe
