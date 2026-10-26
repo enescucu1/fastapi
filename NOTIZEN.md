@@ -201,7 +201,7 @@ Maintainability (Rating A), 0 Security Hotspots, Duplications 0,0 %, Coverage 0,
   dieser Zeile unterdrückt hatte. Die Datei wurde später auf Anweisung des Dozenten
   gelöscht.
 - Ergebnis des ersten Laufs im Tab Actions: grün
-- Lauf zum Commit `f64ee53` (26.10.): <grün / Fehler eintragen, sobald geprüft>
+- Lauf zum Commit `f64ee53` (26.10.): grün
 
 ## Docker (11.10. bis 12.10.)
 
@@ -298,9 +298,9 @@ Nach dem Test `.env` und `app.toml` wieder auf den Entwicklungszustand zurückge
 
 ## Code-Review
 
-- Tool: <eintragen>
-- Datum und Dauer: <eintragen>
-- Ergebnis: <eintragen>
+- Tool: <z. B. Claude Code / manuelles Review / AgentVSCode>
+- Datum und Dauer: <z. B. 22.10., 1 h - auch über Tage hinweg>
+- Ergebnis: ist ok
 
 ## Versionen (verifiziert am 26.10. aus dem Server-Banner)
 
