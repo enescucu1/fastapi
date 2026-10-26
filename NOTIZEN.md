@@ -147,7 +147,8 @@ Bekannte harmlose Meldungen:
   cryptography`, Update auf 50.0.2. Danach `uv audit` ohne Fund (Commit 36a3389).
 - Veraltete Pakete: pydantic 2.13.5 (neu: 2.14.0) und pydantic-core 2.46.5 (neu: 2.50.0).
   Nicht aktualisiert: keine Sicherheitslücke, enge Kopplung der beiden Pakete, Pins vom
-  Dozenten.
+  Dozenten. (Pydantic wurde am 21.10. mit dem `uv.lock`-Update auf 2.14.1 gehoben, siehe
+  unten.)
 - `uv audit --all-extras` gibt es in dieser uv-Version nicht, es werden ohnehin alle
   152 Pakete geprüft.
 
@@ -200,6 +201,7 @@ Maintainability (Rating A), 0 Security Hotspots, Duplications 0,0 %, Coverage 0,
   dieser Zeile unterdrückt hatte. Die Datei wurde später auf Anweisung des Dozenten
   gelöscht.
 - Ergebnis des ersten Laufs im Tab Actions: grün
+- Lauf zum Commit `f64ee53` (26.10.): <grün / Fehler eintragen, sobald geprüft>
 
 ## Docker (11.10. bis 12.10.)
 
@@ -237,30 +239,10 @@ Vor dem Start mit Compose müssen der lokale Appserver sowie die Compose-Projekt
 `keycloak` und `mailpit` beendet sein (Port 8000, Backend kommt per `include`).
 
 **Test gegen den Container (12.10.):** Bruno-Requests gegen `https://127.0.0.1:8000`
-
 (Compose-Stack mit Trixie-Image): Token 200, `GET /rest/1` 200, `POST /rest` 201 (Mail
 in Mailpit) und 422 (vorhandene E-Mail, ungültige Daten), `PUT /rest/30` 204 (Version
 0 auf 1), `DELETE /rest/50` 204, `POST /graphql` 200. Der Container startet mit
 `User app` und `cap_drop: [ALL]`. Beim Start werden DB und Keycloak neu geladen.
-
-## Versionen (verifiziert am 8.10.)
-
-FastAPI 0.143.0, Starlette 1.7.0, uvicorn 0.54.0, Strawberry 0.332.0, SQLAlchemy 2.1.4,
-psycopg 3.3.6, Pydantic 2.13.5, cryptography 50.0.2, Python 3.15.0rc2, Keycloak 26.7.4,
-PostgreSQL 19beta4, Mailpit v1.31.3.
-
-## Starten und Beenden
-
-**Lokal:** `extras\compose\keycloak` (`docker compose up`, PostgreSQL und Keycloak),
-`extras\compose\mailpit` (`docker compose up -d`), dann im Projektordner `uv run patient`
-und auf `Application startup complete` warten. Beenden: Appserver mit Strg+C,
-`docker compose down` in beiden Ordnern. Die Daten bleiben in den Volumes erhalten.
-
-**Mit Docker:** `cd extras\compose\patient`, `docker compose up`, beenden mit Strg+C und
-`docker compose down`.
-
-Adressen: Swagger UI `https://127.0.0.1:8000/docs`, GraphQL `https://127.0.0.1:8000/graphql`,
-Keycloak `https://localhost:8843`, Mailpit `http://localhost:8025`.
 
 ## Lasttests mit Locust (12.10.)
 
@@ -300,8 +282,99 @@ ein Last-, kein Stresstest, die Belastungsgrenze wurde nicht gesucht.
 
 Nach dem Test `.env` und `app.toml` wieder auf den Entwicklungszustand zurückgesetzt.
 
+## mkdocs und PlantUML (12.10.)
+
+- [x] `uv run mkdocs build` und `uv run mkdocs serve` laufen durch
+- Das Plugin `build_plantuml` rendert die PlantUML-Diagramme über plantuml.com
+- `strict: true`, d. h. jede Warnung bricht den Build ab
+- `mkdocstrings` erzeugt die API-Doku aus den Docstrings im Sphinx-Stil
+
+## Library Skills (12.10.)
+
+- [x] `uvx library-skills --claude --copy`: FastAPI-Skill installiert
+- `--copy` statt Symlinks, weil Windows die Symlinks blockiert
+- Dateien: `.agents\skills\fastapi\SKILL.md` und `.claude\skills\fastapi\SKILL.md`
+- Committet und gepusht
+
+## Code-Review
+
+- Tool: <eintragen>
+- Datum und Dauer: <eintragen>
+- Ergebnis: <eintragen>
+
+## Versionen (verifiziert am 26.10. aus dem Server-Banner)
+
+| Komponente | Version |
+|---|---|
+| Python | 3.15.0rc2 |
+| uv | 0.13.4 |
+| FastAPI | 0.162.0 |
+| Starlette | 1.9.0 |
+| uvicorn | 0.54.0 |
+| Pydantic | 2.14.1 |
+| Strawberry | 0.336.2 |
+| SQLAlchemy | 2.1.5 |
+| psycopg | 3.3.6 |
+| cryptography | 50.0.2 |
+| python-keycloak | 7.1.1 |
+| pytest | 9.1.1 |
+| Ruff / ty / Pyrefly | 0.17.1 / 0.0.90 / 1.4.0 |
+| locust | 2.46.7 |
+| Keycloak (Image) | 26.7.4 |
+| PostgreSQL (Image) | 19beta4 |
+| Mailpit (Image) | v1.31.3 |
+
+## Update (21.10. und 26.10.)
+
+**Durchgeführt:**
+
+- 21.10.: `uv.lock` aktualisiert (FastAPI 0.156.5, Starlette 1.9.0, Pydantic 2.14.1,
+  SQLAlchemy 2.1.5, Strawberry 0.336.2).
+- 26.10.: `uv lock --upgrade-package fastapi` auf 0.162.0. `uv lock --upgrade-package
+  brotli` auf 1.2.1, weil `uv audit` PYSEC-2026-4322 (Out-of-bounds-Zugriff) meldete.
+  Brotli kommt über Locust und geventhttpclient ins Projekt. Danach meldet `uv audit`
+  keine bekannten Lücken. Commit `f64ee53`, gepusht.
+- Prüfung nach dem Update: pytest 84 passed, 1 skipped (19,5 s), ruff und ty ohne Fund,
+  Pyrefly 0 Diagnostics, `mkdocs build` in 4,1 s ohne Warnung.
+
+**Bewusst nicht aktualisiert:**
+
+- Python bleibt bei 3.15.0rc2. Die rc2 erfüllt `>=3.15`, bis zur Final gibt es Fixes bei
+  Lazy Imports, aber kurz vor der Abgabe will ich kein Risiko eingehen.
+- Docker-Images bleiben auf den Tags des Dozenten. PostgreSQL 19beta4: Die Final ist für
+  den 19.11.2026 geplant, ein Wechsel birgt ein Risiko für die Volumes. Keycloak 26.7.4:
+  neuere Versionen schließen Sicherheitslücken, der Server läuft aber nur lokal.
+- Weitere Pakete (SQLAlchemy 2.1.6, Starlette 1.10.0, Strawberry 0.338.0, Ruff 0.17.2,
+  ty 0.0.92, mkdocs-material 9.8.0) nicht eingespielt. Der Stand ist getestet, neue
+  Lint-Regeln wären ein Risiko.
+
+## Starten und Beenden
+
+**Lokal:**
+
+1. Docker Desktop starten
+2. `cd extras\compose\keycloak`, `docker compose up` (PostgreSQL und Keycloak), warten
+   bis Keycloak läuft
+3. `cd extras\compose\mailpit`, `docker compose up -d`
+4. Im Projektordner `$env:LOGURU_LEVEL = 'INFO'`, dann `uv run patient`, warten auf
+   `Application startup complete`
+5. Doku: `uv run mkdocs serve -a 127.0.0.1:8001` (Port 8001, weil 8000 der Appserver
+   belegt)
+
+Beenden: Appserver mit Strg+C, `docker compose down` in mailpit und keycloak. Die Daten
+bleiben in den Volumes erhalten.
+
+**Mit Docker:** `cd extras\compose\patient`, `docker compose up`, beenden mit Strg+C und
+`docker compose down`.
+
+**Adressen:** Swagger UI `https://127.0.0.1:8000/docs`, GraphQL
+`https://127.0.0.1:8000/graphql`, Health `/health/liveness` und `/health/readiness`,
+Metriken `/metrics`, Keycloak `https://localhost:8843`, Mailpit `http://localhost:8025`,
+Dokumentation `http://127.0.0.1:8001`.
+
 ## Offen
 
 - [ ] Bruno: Ordner Bearer Token (nicht separat dokumentiert)
-- [ ] mkdocs mit PlantUML-Diagrammen
-- [ ] Code-Review und Abgabe
+- [ ] GitHub Actions zum Commit `f64ee53` prüfen
+- [ ] Excel-Zeiterfassung vervollständigen
+- [ ] Abgabe
